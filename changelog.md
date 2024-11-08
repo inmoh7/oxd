@@ -1,3 +1,5 @@
+2024-11-08 - 479da8f1cb9f0f7edcfeee8232e1996d6b5d32f0 - PopOver.vue, Dialog.vue, PopOver.stories.js, pop-over.spec.ts - Modified PopOver component to be able to configure as persistent or not, Modified Dialog component to not to be able to close when ESC pressed while persistent is set to true
+
 2024-11-07 - 897c614bb977f6e559e717ad0a69a0bce5869183 - components/Tabs/Tabs.vue - Add tooltip to tab icon when title is absent
 
 2024-11-01 - d9cb67f8abf3c1128203f14bce687c8b5b4075a6 - Remove unnecessary separator between consecutive page numbers in OXD pagination
