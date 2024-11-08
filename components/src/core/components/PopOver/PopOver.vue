@@ -77,6 +77,7 @@ export default defineComponent({
     const preventOutsideClick = (event: Event) => {
       const target = event.target as HTMLElement;
       if (!target.closest('.oxd-pop-over') && !target.closest('.oxd-pop-over-button')) {
+        console.log('weeeeee clicked outside')
         event.stopPropagation();
         event.preventDefault();
       }
