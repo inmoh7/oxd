@@ -53,35 +53,22 @@ export default defineComponent({
   },
 
   emits: ['update:show'],
-  // eslint-disable-next-line
-  setup: function (props: any) {
+  setup: function(props) {
     const isActive = ref<boolean>(props.show);
-    const isPersistent = ref<boolean>(props.persistent);
 
     const openPopOver = () => {
       isActive.value = !isActive.value;
     };
     const closePopOver = (e: Event) => {
-      const target = e.target as HTMLElement;
-
-      if (
-        isPersistent.value &&
-        e instanceof KeyboardEvent &&
-        e.key === 'Escape'
-      ) {
+      if (props.persistent) {
         return;
       }
 
-      if (!isPersistent.value && isActive.value) {
+      if (!props.persistent && isActive.value) {
         isActive.value = false;
       }
 
-      if (
-        !isPersistent.value &&
-        target?.closest('[data-slot="pop-over-button"]') !== null
-      ) {
-        e.stopImmediatePropagation();
-      }
+      e.stopPropagation();
     };
 
     //isActive value set to false, when the props.show value change triggered
