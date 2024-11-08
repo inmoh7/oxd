@@ -20,8 +20,15 @@ const Template = (args) => ({
         return {args};
     },
     components: {'oxd-pop-over': PopOverStory},
-    template: '<div><oxd-pop-over v-bind="args" /></div>',
+    template: '<div><oxd-pop-over v-bind="args" /></div>'
 });
 
 export const Default = Template.bind({});
+
 export const RightAligned = () => PopOverStoryRightAligned;
+
+export const Persistent = Template.bind({});
+Persistent.args = {
+    persistent: true,
+    show: true,
+};

@@ -140,23 +140,20 @@ describe('PopOver', () => {
     outsideElement.classList.add('outside-element');
     document.body.appendChild(outsideElement);
 
-    try {
-      expect(wrapper.find('.oxd-pop-over-button').exists()).toBe(true);
-      expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(false);
+    expect(wrapper.find('.oxd-pop-over-button').exists()).toBe(true);
+    expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(false);
 
-      const button = wrapper.find('.oxd-pop-over-button');
-      await button.trigger('click');
-      await wrapper.vm.$nextTick();
+    const button = wrapper.find('.oxd-pop-over-button');
+    await button.trigger('click');
+    await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(true);
+    expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(true);
 
-      await outsideElement.click();
-      await wrapper.vm.$nextTick();
+    await outsideElement.click();
+    await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(false);
-    } finally {
-      document.body.removeChild(outsideElement);
-    }
+    expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(false);
+    document.body.removeChild(outsideElement);
   });
 
   it('click outside pop over to not close the content when persistent is set to true', async () => {
@@ -181,23 +178,20 @@ describe('PopOver', () => {
     outsideElement.classList.add('outside-element');
     document.body.appendChild(outsideElement);
 
-    try {
-      expect(wrapper.find('.oxd-pop-over-button').exists()).toBe(true);
-      expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(false);
+    expect(wrapper.find('.oxd-pop-over-button').exists()).toBe(true);
+    expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(false);
 
-      const button = wrapper.find('.oxd-pop-over-button');
-      await button.trigger('click');
-      await wrapper.vm.$nextTick();
+    const button = wrapper.find('.oxd-pop-over-button');
+    await button.trigger('click');
+    await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(true);
+    expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(true);
 
-      await outsideElement.click();
-      await wrapper.vm.$nextTick();
+    await outsideElement.click();
+    await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(true);
-    } finally {
-      document.body.removeChild(outsideElement);
-    }
+    expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(true);
+    document.body.removeChild(outsideElement);
   });
 
   it('press ESC on keyboard to close the content when persistent is set to false', async () => {
@@ -268,14 +262,27 @@ describe('PopOver', () => {
     expect(wrapper.find('.oxd-pop-over-content').exists()).toBe(true);
   });
 
-  it('check is active on watch', async () => {
-    const wrapper = shallowMount(PopOver, {});
+  it('should toggle pop-over when show prop changes', async () => {
+    const wrapper = mount(PopOver, {
+      props: {
+        show: false,
+      },
+      global: {
+        stubs: {
+          'oxd-icon-button': {template: '<i />'},
+        },
+      },
+    });
+
+    expect(wrapper.vm.isActive).toBe(false);
+
     await wrapper.setProps({show: true});
-    expect(wrapper.vm.isActive).toEqual(false);
-    wrapper.vm.isActive = true;
-    expect(wrapper.vm.isActive).toEqual(true);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.isActive).toBe(true);
+
     await wrapper.setProps({show: false});
-    expect(wrapper.vm.isActive).toEqual(false);
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.isActive).toBe(false);
   });
 
   it('check closePopOver function', async () => {
