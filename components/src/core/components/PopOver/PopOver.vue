@@ -1,6 +1,10 @@
 <template>
   <div class="oxd-pop-over">
-    <div @click="openPopOver" class="oxd-pop-over-button">
+    <div
+      @click="openPopOver"
+      class="oxd-pop-over-button"
+      data-slot="pop-over-button"
+    >
       <slot name="button"></slot>
     </div>
     <transition name="transition-fade-down">
@@ -42,20 +46,42 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
+    persistent: {
+      type: Boolean,
+      default: false,
+    },
   },
 
   emits: ['update:show'],
   // eslint-disable-next-line
-  setup: function(props: any) {
+  setup: function (props: any) {
     const isActive = ref<boolean>(props.show);
+    const isPersistent = ref<boolean>(props.persistent);
+
     const openPopOver = () => {
       isActive.value = !isActive.value;
     };
     const closePopOver = (e: Event) => {
-      if (isActive.value) {
+      const target = e.target as HTMLElement;
+
+      if (
+        isPersistent.value &&
+        e instanceof KeyboardEvent &&
+        e.key === 'Escape'
+      ) {
+        return;
+      }
+
+      if (!isPersistent.value && isActive.value) {
         isActive.value = false;
       }
-      e.stopImmediatePropagation();
+
+      if (
+        !isPersistent.value &&
+        target?.closest('[data-slot="pop-over-button"]') !== null
+      ) {
+        e.stopImmediatePropagation();
+      }
     };
 
     //isActive value set to false, when the props.show value change triggered
