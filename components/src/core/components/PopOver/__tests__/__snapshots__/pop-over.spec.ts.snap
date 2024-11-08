@@ -2,7 +2,7 @@
 
 exports[`PopOver renders the pop-over component 1`] = `
 <div class="oxd-pop-over">
-  <div class="oxd-pop-over-button"></div>
+  <div class="oxd-pop-over-button" data-slot="pop-over-button"></div>
   <transition-stub>
     <!--v-if-->
   </transition-stub>
