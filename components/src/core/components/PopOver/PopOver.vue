@@ -1,11 +1,19 @@
 <template>
   <div class="oxd-pop-over">
-    <div @click="openPopOver" class="oxd-pop-over-button" data-slot="pop-over-button">
+    <div @click="togglePopOver" class="oxd-pop-over-button">
       <slot name="button"></slot>
     </div>
     <transition name="transition-fade-down">
-      <div class="oxd-pop-over-content" v-if="isActive" v-click-outside="closePopOver" role="dialog"
-        @keyup.esc="closePopOver" v-focus-trap v-dropdown-direction v-horizontal-direction>
+      <div
+        class="oxd-pop-over-content"
+        v-if="isActive"
+        v-click-outside="closePopOver"
+        role="dialog"
+        @keyup.esc="closePopOver"
+        v-focus-trap
+        v-dropdown-direction
+        v-horizontal-direction
+      >
         <slot></slot>
       </div>
     </transition>
@@ -13,7 +21,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onBeforeUnmount, ref, watch } from 'vue';
+import {defineComponent, onBeforeUnmount, ref, watch} from 'vue';
 import clickOutsideDirective from '../../../directives/click-outside';
 import dropdownDirectionDirective from '../../../directives/dropdown-direction';
 import popoverHorizontalDirectionDirectiveDirectionDirective from '../../../directives/popover-direction';
@@ -41,53 +49,40 @@ export default defineComponent({
   },
 
   emits: ['update:show'],
-  setup: function (props) {
+  setup(props) {
     const isActive = ref<boolean>(props.show);
 
-    const openPopOver = () => {
-      isActive.value = !isActive.value;
-      if (isActive.value && props.persistent) {
-        enableClickFreeze();
-      } else {
-        disableClickFreeze();
+    const handleOutsideClick = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.oxd-pop-over')) {
+        e.stopPropagation();
+        e.preventDefault();
       }
-    };
-
-    const closePopOver = (e: Event) => {
-      if (props.persistent) {
-        return;
-      }
-
-      if (isActive.value) {
-        isActive.value = false;
-      }
-
-      e.stopPropagation();
-      disableClickFreeze();
     };
 
     const enableClickFreeze = () => {
-      document.addEventListener('click', preventOutsideClick, true);
+      document.addEventListener('click', handleOutsideClick, true);
     };
 
     const disableClickFreeze = () => {
-      document.removeEventListener('click', preventOutsideClick, true);
+      document.removeEventListener('click', handleOutsideClick, true);
     };
 
-    const preventOutsideClick = (event: Event) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.oxd-pop-over') && !target.closest('.oxd-pop-over-button')) {
-        console.log('weeeeee clicked outside')
-        event.stopPropagation();
-        event.preventDefault();
+    const togglePopOver = () => {
+      isActive.value = !isActive.value;
+      props.persistent && isActive.value
+        ? enableClickFreeze()
+        : disableClickFreeze();
+    };
+
+    const closePopOver = (e: Event) => {
+      if (!props.persistent && isActive.value) {
+        isActive.value = false;
+        disableClickFreeze();
+        e.stopPropagation();
       }
     };
 
-    onBeforeUnmount(() => {
-      disableClickFreeze();
-    });
-
-    //isActive value set to false, when the props.show value change triggered
     watch(
       () => props.show,
       () => {
@@ -95,9 +90,11 @@ export default defineComponent({
       },
     );
 
+    onBeforeUnmount(() => disableClickFreeze());
+
     return {
       isActive,
-      openPopOver,
+      togglePopOver,
       closePopOver,
     };
   },
