@@ -13,7 +13,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onBeforeUnmount, ref, watch } from 'vue';
+import { defineComponent, onBeforeUnmount, ref, watch, watchEffect } from 'vue';
 import clickOutsideDirective from '../../../directives/click-outside';
 import dropdownDirectionDirective from '../../../directives/dropdown-direction';
 import popoverHorizontalDirectionDirectiveDirectionDirective from '../../../directives/popover-direction';
@@ -78,10 +78,7 @@ export default defineComponent({
     watch(
       () => props.show,
       () => {
-        isActive.value = false;
-        if (props.persistent) {
-          enableClickFreeze();
-        }
+        togglePopOver()
       },
     );
 
