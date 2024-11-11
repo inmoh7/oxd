@@ -4,16 +4,8 @@
       <slot name="button"></slot>
     </div>
     <transition name="transition-fade-down">
-      <div
-        class="oxd-pop-over-content"
-        v-if="isActive"
-        v-click-outside="closePopOver"
-        role="dialog"
-        @keyup.esc="closePopOver"
-        v-focus-trap
-        v-dropdown-direction
-        v-horizontal-direction
-      >
+      <div class="oxd-pop-over-content" v-if="isActive" v-click-outside="closePopOver" role="dialog"
+        @keyup.esc="closePopOver" v-focus-trap v-dropdown-direction v-horizontal-direction>
         <slot></slot>
       </div>
     </transition>
@@ -21,7 +13,7 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, onBeforeUnmount, ref, watch} from 'vue';
+import { defineComponent, onBeforeUnmount, ref, watch } from 'vue';
 import clickOutsideDirective from '../../../directives/click-outside';
 import dropdownDirectionDirective from '../../../directives/dropdown-direction';
 import popoverHorizontalDirectionDirectiveDirectionDirective from '../../../directives/popover-direction';
@@ -87,6 +79,9 @@ export default defineComponent({
       () => props.show,
       () => {
         isActive.value = false;
+        if (props.persistent) {
+          enableClickFreeze();
+        }
       },
     );
 
