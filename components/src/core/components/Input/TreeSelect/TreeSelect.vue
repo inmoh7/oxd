@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="inputContainerRef"
     v-click-outside="closeDropdownOnOutsideClick"
     class="oxd-multiselect-wrapper"
   >
@@ -22,14 +23,14 @@
         <slot name="topOfInput"></slot>
       </template>
       <template #afterInput>
-        <div v-if="selectedIdsLengthComputed > 1 && !(allSelectedText && isAllSelected)" class="selected-count-chip">
+        <div v-if="remainingCount > 0 && !(allSelectedText && isAllSelected)" class="selected-count-chip">
           <oxd-chip
-            v-if="String(selectedIdsLengthComputed - 1).length == 1"
-            :label="'&nbsp;' + '+' + (selectedIdsLengthComputed - 1) + '&nbsp;'"
+            v-if="String(remainingCount).length == 1"
+            :label="'&nbsp;' + '+' + remainingCount + '&nbsp;'"
           ></oxd-chip>
           <oxd-chip
-            v-if="String(selectedIdsLengthComputed - 1).length > 1"
-            :label="'+' + (selectedIdsLengthComputed - 1)"
+            v-if="String(remainingCount).length > 1"
+            :label="'+' + remainingCount"
           ></oxd-chip>
         </div>
       </template>
@@ -155,7 +156,7 @@
 </template>
 
 <script lang="ts">
-import {computed, defineComponent, ref, PropType, watch} from 'vue';
+import {computed, defineComponent, ref, PropType, watch, nextTick, onMounted} from 'vue';
 
 import SelectText from '../Select/SelectText.vue';
 import useTranslate from '../../../../composables/useTranslate';
@@ -276,6 +277,8 @@ export default defineComponent({
     const optionsArr = ref<Option[]>([]);
     const dropdownOpen = ref<boolean>(false);
     const isAllSelected = ref<boolean>(false);
+    const inputContainerRef = ref<HTMLElement | null>(null);
+    const visibleItemsCount = ref<number>(0);
 
     const spreadOptions = () => {
       optionsArr.value = [...JSON.parse(JSON.stringify(props.options))];
@@ -668,38 +671,112 @@ export default defineComponent({
       }
     };
 
-    const findPlaceholderOption = (options: Option[]): Option | string => {
-      for (const option of options) {
-        if (
-          selectedIdsObject.value[option.id] &&
-          (props.countTopmostParents ? true : option._level > 1)
-        ) {
-          return option;
-        } else if (option.children ? option.children.length !== 0 : false) {
-          const result = findPlaceholderOption(option.children);
-          if (result !== NOT_FOUND && typeof result !== 'string') {
-            return result;
-          }
+    const allSelectedOptions = computed((): Option[] => {
+      return selectedIdsComputed.value
+        .map(id => findOptionByOptionId(id, optionsArr.value))
+        .filter((option): option is Option => 
+          typeof option !== 'string' && 
+          (props.countTopmostParents || option._level > 1)
+        );
+    });
+
+    const calculateVisibleItems = () => {
+      const selectedOptions = allSelectedOptions.value;
+      if (selectedIdsComputed.value.length === 0 || selectedOptions.length === 0) {
+        visibleItemsCount.value = 0;
+        return;
+      }
+      
+      if (!inputContainerRef.value) {
+        visibleItemsCount.value = selectedOptions.length;
+        return;
+      }
+
+      const inputElement = inputContainerRef.value.querySelector('.oxd-select-text-input') as HTMLElement;
+      if (!inputElement) {
+        visibleItemsCount.value = selectedOptions.length;
+        return;
+      }
+
+      // Get available width from the input container
+      const inputRect = inputElement.getBoundingClientRect();
+      const inputStyles = window.getComputedStyle(inputElement);
+      const paddingLeft = parseFloat(inputStyles.paddingLeft) || 0;
+      const paddingRight = parseFloat(inputStyles.paddingRight) || 0;
+      
+      // Find the after section (arrow area)
+      const afterElement = inputContainerRef.value.querySelector('.oxd-select-text--after') as HTMLElement;
+      // Get arrow width (chip might not be rendered yet, so measure just the arrow)
+      const arrowElement = afterElement?.querySelector('.oxd-select-text--arrow') as HTMLElement;
+      const arrowWidth = arrowElement ? arrowElement.getBoundingClientRect().width : 40;
+      
+      // Reserve space for potential +n chip (we'll account for it conditionally in the loop)
+      const chipReserveWidth = 60; // Approximate width for +n chip
+      const baseReservedWidth = paddingLeft + paddingRight + arrowWidth;
+      const availableWidth = inputRect.width - baseReservedWidth;
+      
+      // Create a temporary element to measure text width
+      const measureEl = document.createElement('span');
+      measureEl.style.position = 'absolute';
+      measureEl.style.visibility = 'hidden';
+      measureEl.style.whiteSpace = 'nowrap';
+      measureEl.style.fontSize = inputStyles.fontSize || '12px';
+      measureEl.style.fontFamily = inputStyles.fontFamily || 'inherit';
+      measureEl.style.fontWeight = inputStyles.fontWeight || 'normal';
+      document.body.appendChild(measureEl);
+
+      // Measure comma + space width
+      measureEl.textContent = ', ';
+      const commaSpaceWidth = measureEl.offsetWidth || 8;
+
+      let totalWidth = 0;
+      let count = 0;
+
+      for (let i = 0; i < selectedOptions.length; i++) {
+        const option = selectedOptions[i];
+        measureEl.textContent = option.label;
+        const labelWidth = measureEl.offsetWidth;
+        
+        // Add comma + space width if not the first item
+        const itemWidth = labelWidth + (i > 0 ? commaSpaceWidth : 0);
+        
+        // Check if we need to reserve space for +n chip
+        const remainingItems = selectedOptions.length - (i + 1);
+        const needsChip = remainingItems > 0;
+        const requiredWidth = totalWidth + itemWidth + (needsChip ? chipReserveWidth : 0);
+        
+        if (requiredWidth <= availableWidth) {
+          totalWidth += itemWidth;
+          count++;
+        } else {
+          break;
         }
       }
-      return NOT_FOUND;
+
+      document.body.removeChild(measureEl);
+      
+      visibleItemsCount.value = count === 0 && selectedOptions.length > 0 ? 1 : count;
     };
 
-    const getPlaceholderValue = () => {
-      let placeholderString = '';
-      const option = findPlaceholderOption(getLevelOneOptions());
-      if (typeof option !== 'string') {
-        placeholderString = option.label;
-      }
+    const visibleSelectedOptions = computed(() => {
+      return allSelectedOptions.value.slice(0, visibleItemsCount.value);
+    });
 
-      return placeholderString;
-    };
+    const remainingCount = computed(() => {
+      return Math.max(0, allSelectedOptions.value.length - visibleItemsCount.value);
+    });
 
     const displayValue = computed(() => {
       if (props.allSelectedText && isAllSelected.value) {
         return $t(props.allSelectedText);
       }
-      return getPlaceholderValue() + (selectedIdsLengthComputed.value > 1 ? ',' : '');
+      
+      const visible = visibleSelectedOptions.value;
+      if (visible.length === 0) {
+        return '';
+      }
+      
+      return visible.map(option => option.label).join(', ');
     });
 
     const keyUpEnterOnCheckbox = ($e: KeyboardEvent, option: Option) => {
@@ -755,10 +832,17 @@ export default defineComponent({
     };
     init();
 
+    const recalculateVisible = () => {
+      nextTick(() => {
+        calculateVisibleItems();
+      });
+    };
+
     watch(
       () => props.options,
       () => {
         init();
+        recalculateVisible();
       },
     );
 
@@ -768,10 +852,27 @@ export default defineComponent({
         if (props.modelValue == null) {
           //when clicked reset in schema form
           init();
+          recalculateVisible();
         }
       },
       {
         immediate: true,
+      },
+    );
+
+    watch(
+      [selectedIdsComputed, allSelectedOptions],
+      () => {
+        recalculateVisible();
+      },
+    );
+
+    watch(
+      () => inputContainerRef.value,
+      (newVal) => {
+        if (newVal && selectedIdsComputed.value.length > 0) {
+          recalculateVisible();
+        }
       },
     );
 
@@ -784,6 +885,8 @@ export default defineComponent({
       expandedIdsObject,
       selectedIdsLengthComputed,
       displayValue,
+      inputContainerRef,
+      remainingCount,
       getOptionLabelStyle,
       selectOptionsOnCheckbox,
       expandIconClicked,
@@ -795,7 +898,6 @@ export default defineComponent({
       selectOptionOnlabelClick,
       onCloseDropdown,
       onToggleDropdown,
-      getPlaceholderValue,
       keyUpEnterOnCheckbox,
     };
   },
